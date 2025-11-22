@@ -1,0 +1,378 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Admin - FortuneFlip</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;600;800&display=swap" rel="stylesheet">
+    <style>
+        body { background-color: #0f172a; color: #e2e8f0; font-family: 'Outfit', sans-serif; }
+        .glass { background: #1e293b; border: 1px solid #334155; }
+        .nav-item.active { background: #3b82f6; color: white; box-shadow: 0 4px 12px rgba(59, 130, 246, 0.4); }
+        
+        /* Custom Scrollbar */
+        ::-webkit-scrollbar { width: 6px; }
+        ::-webkit-scrollbar-track { background: #0f172a; }
+        ::-webkit-scrollbar-thumb { background: #334155; border-radius: 10px; }
+    </style>
+</head>
+<body class="flex h-screen overflow-hidden">
+
+    <aside class="w-64 bg-[#1e293b] border-r border-gray-700 flex flex-col hidden md:flex z-20">
+        <div class="p-6 border-b border-gray-700 flex items-center gap-3">
+            <div class="bg-blue-600 p-2 rounded-lg"><i class="fas fa-dice text-white"></i></div>
+            <h1 class="text-xl font-bold tracking-wide text-white">FortuneFlip</h1>
+        </div>
+        
+        <nav class="flex-1 p-4 space-y-2 overflow-y-auto">
+            <p class="text-xs font-bold text-gray-500 uppercase px-3 mb-1">Main</p>
+            <button onclick="switchTab('dashboard')" id="nav-dashboard" class="nav-item w-full text-left px-4 py-3 rounded-xl text-gray-400 font-bold flex items-center gap-3 transition hover:bg-gray-700 hover:text-white active">
+                <i class="fas fa-chart-pie w-5"></i> Dashboard
+            </button>
+            
+            <p class="text-xs font-bold text-gray-500 uppercase px-3 mt-4 mb-1">Finance</p>
+            <button onclick="switchTab('deposits')" id="nav-deposits" class="nav-item w-full text-left px-4 py-3 rounded-xl text-gray-400 font-bold flex items-center gap-3 transition hover:bg-gray-700 hover:text-white">
+                <i class="fas fa-wallet w-5"></i> Deposits <span id="depCount" class="ml-auto bg-red-500 text-white text-[10px] px-2 py-0.5 rounded-full hidden">0</span>
+            </button>
+            <button onclick="switchTab('withdrawals')" id="nav-withdrawals" class="nav-item w-full text-left px-4 py-3 rounded-xl text-gray-400 font-bold flex items-center gap-3 transition hover:bg-gray-700 hover:text-white">
+                <i class="fas fa-money-bill-transfer w-5"></i> Withdrawals
+            </button>
+
+            <p class="text-xs font-bold text-gray-500 uppercase px-3 mt-4 mb-1">Management</p>
+            <button onclick="switchTab('users')" id="nav-users" class="nav-item w-full text-left px-4 py-3 rounded-xl text-gray-400 font-bold flex items-center gap-3 transition hover:bg-gray-700 hover:text-white">
+                <i class="fas fa-users w-5"></i> Users
+            </button>
+            <button onclick="switchTab('games')" id="nav-games" class="nav-item w-full text-left px-4 py-3 rounded-xl text-gray-400 font-bold flex items-center gap-3 transition hover:bg-gray-700 hover:text-white">
+                <i class="fas fa-gamepad w-5"></i> Game Control
+            </button>
+            <button onclick="switchTab('announcements')" id="nav-announcements" class="nav-item w-full text-left px-4 py-3 rounded-xl text-gray-400 font-bold flex items-center gap-3 transition hover:bg-gray-700 hover:text-white">
+                <i class="fas fa-bullhorn w-5"></i> Notify
+            </button>
+            
+            <p class="text-xs font-bold text-gray-500 uppercase px-3 mt-4 mb-1">System</p>
+            <button onclick="switchTab('settings')" id="nav-settings" class="nav-item w-full text-left px-4 py-3 rounded-xl text-gray-400 font-bold flex items-center gap-3 transition hover:bg-gray-700 hover:text-white">
+                <i class="fas fa-cog w-5"></i> Settings
+            </button>
+        </nav>
+    </aside>
+
+    <div class="md:hidden fixed top-0 left-0 w-full bg-[#1e293b] border-b border-gray-700 z-30 p-4 flex justify-between items-center">
+        <h1 class="font-bold text-white">Admin Panel</h1>
+        <button onclick="document.querySelector('aside').classList.toggle('hidden'); document.querySelector('aside').classList.toggle('absolute'); document.querySelector('aside').classList.toggle('h-full');" class="text-white"><i class="fas fa-bars"></i></button>
+    </div>
+
+    <main class="flex-1 overflow-y-auto p-6 relative mt-14 md:mt-0">
+        
+        <div id="view-dashboard" class="view-section">
+            <h2 class="text-2xl font-bold text-white mb-6">Overview</h2>
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
+                <div class="bg-blue-600 p-6 rounded-2xl shadow-lg shadow-blue-900/20">
+                    <p class="text-blue-200 text-sm font-bold uppercase">Total Users</p>
+                    <h3 class="text-4xl font-bold text-white mt-2" id="statUsers">0</h3>
+                </div>
+                <div class="bg-green-600 p-6 rounded-2xl shadow-lg shadow-green-900/20">
+                    <p class="text-green-200 text-sm font-bold uppercase">Pending Deposits</p>
+                    <h3 class="text-4xl font-bold text-white mt-2" id="statDeps">0</h3>
+                </div>
+                <div class="bg-purple-600 p-6 rounded-2xl shadow-lg shadow-purple-900/20">
+                    <p class="text-purple-200 text-sm font-bold uppercase">Pending Withdrawals</p>
+                    <h3 class="text-4xl font-bold text-white mt-2" id="statWiths">0</h3>
+                </div>
+            </div>
+        </div>
+
+        <div id="view-deposits" class="view-section hidden">
+            <h2 class="text-2xl font-bold text-white mb-6">Deposit Requests</h2>
+            <div id="depositList" class="grid grid-cols-1 xl:grid-cols-2 gap-4">
+                </div>
+        </div>
+
+        <div id="view-withdrawals" class="view-section hidden">
+            <h2 class="text-2xl font-bold text-white mb-6">Withdrawal Requests</h2>
+            <div id="withdrawList" class="space-y-4">
+                </div>
+        </div>
+
+        <div id="view-users" class="view-section hidden">
+            <div class="flex justify-between items-center mb-6">
+                <h2 class="text-2xl font-bold text-white">User Management</h2>
+                <input type="text" id="searchUser" placeholder="Search Email..." class="bg-[#1e293b] border border-gray-600 px-4 py-2 rounded-lg text-white outline-none focus:border-blue-500">
+            </div>
+            <div class="bg-[#1e293b] rounded-xl border border-gray-700 overflow-x-auto">
+                <table class="w-full text-left text-sm text-gray-300">
+                    <thead class="bg-gray-800 text-gray-500 uppercase font-bold">
+                        <tr><th class="p-4">User</th><th class="p-4">Balance</th><th class="p-4">Status</th><th class="p-4 text-right">Action</th></tr>
+                    </thead>
+                    <tbody id="userList"></tbody>
+                </table>
+            </div>
+        </div>
+
+        <div id="view-games" class="view-section hidden">
+            <h2 class="text-2xl font-bold text-white mb-6">Game Control Center</h2>
+            <div class="grid grid-cols-1 lg:grid-cols-2 gap-8">
+                
+                <div class="bg-[#1e293b] p-6 rounded-2xl border border-gray-700">
+                    <div class="flex justify-between items-center mb-4">
+                        <h3 class="text-xl font-bold text-purple-400"><i class="fas fa-dice-d6 mr-2"></i>Win Go (Parity)</h3>
+                        <span class="bg-green-500/20 text-green-400 text-xs px-2 py-1 rounded">LIVE</span>
+                    </div>
+                    
+                    <div class="grid grid-cols-3 gap-2 mb-6 text-center">
+                        <div class="bg-green-900/30 p-2 rounded border border-green-500/30">
+                            <p class="text-xs text-gray-400">Green Pool</p>
+                            <p class="text-green-400 font-bold">₹<span id="poolGreen">0</span></p>
+                        </div>
+                        <div class="bg-purple-900/30 p-2 rounded border border-purple-500/30">
+                            <p class="text-xs text-gray-400">Violet Pool</p>
+                            <p class="text-purple-400 font-bold">₹<span id="poolViolet">0</span></p>
+                        </div>
+                        <div class="bg-red-900/30 p-2 rounded border border-red-500/30">
+                            <p class="text-xs text-gray-400">Red Pool</p>
+                            <p class="text-red-400 font-bold">₹<span id="poolRed">0</span></p>
+                        </div>
+                    </div>
+
+                    <label class="text-xs font-bold text-gray-400 uppercase">Force Next Result</label>
+                    <div class="flex gap-2 mt-2">
+                        <select id="parityResultColor" class="bg-gray-800 border border-gray-600 text-white px-4 py-2 rounded-lg outline-none flex-1">
+                            <option value="random">Random (Fair)</option>
+                            <option value="green">Green Wins</option>
+                            <option value="red">Red Wins</option>
+                            <option value="violet">Violet Wins</option>
+                        </select>
+                        <button onclick="saveGameSetting('parity')" class="bg-blue-600 px-4 py-2 rounded-lg font-bold text-white hover:bg-blue-500">SET</button>
+                    </div>
+                </div>
+
+                <div class="bg-[#1e293b] p-6 rounded-2xl border border-gray-700">
+                    <div class="flex justify-between items-center mb-4">
+                        <h3 class="text-xl font-bold text-red-400"><i class="fas fa-plane mr-2"></i>Aviator</h3>
+                        <span class="bg-green-500/20 text-green-400 text-xs px-2 py-1 rounded">LIVE</span>
+                    </div>
+                    
+                    <div class="bg-gray-800 p-4 rounded-xl mb-4 border border-gray-600">
+                        <p class="text-xs text-gray-400 mb-1">Current Mode</p>
+                        <p class="text-white font-bold text-lg" id="aviatorStatus">Smart Algorithm (Profit Mode)</p>
+                    </div>
+
+                    <label class="text-xs font-bold text-gray-400 uppercase">Force Next Crash Point</label>
+                    <div class="flex gap-2 mt-2">
+                        <input type="number" id="aviatorCrash" placeholder="e.g. 1.50" step="0.01" class="bg-gray-800 border border-gray-600 text-white px-4 py-2 rounded-lg outline-none flex-1">
+                        <button onclick="saveGameSetting('aviator')" class="bg-blue-600 px-4 py-2 rounded-lg font-bold text-white hover:bg-blue-500">SET CRASH</button>
+                    </div>
+                    <p class="text-xs text-gray-500 mt-2">Leave empty for random.</p>
+                </div>
+
+            </div>
+        </div>
+
+        <div id="view-announcements" class="view-section hidden">
+            <h2 class="text-2xl font-bold text-white mb-6">Announcements</h2>
+            <div class="bg-[#1e293b] p-6 rounded-2xl border border-gray-700 max-w-2xl">
+                <label class="text-xs text-gray-400 font-bold uppercase">Title</label>
+                <input type="text" id="annTitle" class="w-full bg-gray-800 border border-gray-600 p-3 rounded-lg mt-1 text-white outline-none mb-4">
+                
+                <label class="text-xs text-gray-400 font-bold uppercase">Message</label>
+                <textarea id="annMsg" rows="3" class="w-full bg-gray-800 border border-gray-600 p-3 rounded-lg mt-1 text-white outline-none mb-4"></textarea>
+                
+                <button onclick="sendAnnouncement()" class="bg-green-600 text-white px-6 py-3 rounded-lg font-bold hover:bg-green-500 w-full">SEND NOTIFICATION</button>
+            </div>
+        </div>
+
+        <div id="view-settings" class="view-section hidden">
+            <h2 class="text-2xl font-bold text-white mb-6">Settings</h2>
+            <div class="bg-[#1e293b] p-6 rounded-2xl border border-gray-700 max-w-md">
+                <label class="text-xs text-gray-400 font-bold uppercase">Admin UPI ID (For Deposits)</label>
+                <div class="flex gap-2 mt-2">
+                    <input type="text" id="adminUpiInput" class="flex-1 bg-gray-800 border border-gray-600 p-3 rounded-lg outline-none text-yellow-400 font-mono">
+                    <button id="saveUpiBtn" class="bg-blue-600 px-6 py-2 rounded-lg font-bold hover:bg-blue-500">SAVE</button>
+                </div>
+            </div>
+        </div>
+
+    </main>
+
+    <div id="editUserModal" class="fixed inset-0 bg-black/80 hidden flex items-center justify-center z-50 backdrop-blur-sm">
+        <div class="bg-[#1e293b] p-8 rounded-2xl w-96 border border-gray-600 shadow-2xl">
+            <h3 class="text-xl font-bold text-white mb-6">Edit User</h3>
+            <input type="hidden" id="editUid">
+            
+            <label class="text-xs text-gray-400 font-bold">WALLET BALANCE</label>
+            <input type="number" id="editBalance" class="w-full bg-gray-900 border border-gray-500 p-3 rounded-lg mb-6 text-white font-mono text-lg outline-none focus:border-blue-500">
+            
+            <div class="flex items-center gap-3 mb-6">
+                <input type="checkbox" id="editBan" class="w-5 h-5 accent-red-500">
+                <label for="editBan" class="text-red-400 font-bold cursor-pointer">BAN USER</label>
+            </div>
+
+            <div class="flex gap-3">
+                <button onclick="document.getElementById('editUserModal').classList.add('hidden')" class="flex-1 bg-gray-700 py-3 rounded-lg font-bold text-gray-300">Cancel</button>
+                <button onclick="saveUserChanges()" class="flex-1 bg-green-600 py-3 rounded-lg font-bold text-white">Save</button>
+            </div>
+        </div>
+    </div>
+
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/9.6.1/firebase-app.js";
+        import { getFirestore, collection, onSnapshot, doc, updateDoc, setDoc, increment, runTransaction, query, where, orderBy } from "https://www.gstatic.com/firebasejs/9.6.1/firebase-firestore.js";
+
+        const firebaseConfig = {
+            apiKey: "AIzaSyAvuTedi4hNLDTHwNt3tElmZZmwmxBC_zo",
+            authDomain: "rupeedesk7.firebaseapp.com",
+            projectId: "rupeedesk7",
+            storageBucket: "rupeedesk7.firebasestorage.app",
+            messagingSenderId: "1013963357851",
+            appId: "1:1013963357851:android:89d07511ca0da5fded503e"
+        };
+
+        const app = initializeApp(firebaseConfig);
+        const db = getFirestore(app);
+
+        // --- NAVIGATION ---
+        window.switchTab = (view) => {
+            document.querySelectorAll('.view-section').forEach(el => el.classList.add('hidden'));
+            document.getElementById('view-' + view).classList.remove('hidden');
+            document.querySelectorAll('.nav-item').forEach(el => el.classList.remove('active', 'bg-blue-600', 'text-white'));
+            const btn = document.getElementById('nav-' + view);
+            if(btn) btn.classList.add('active');
+        };
+
+        // --- 1. DASHBOARD STATS ---
+        onSnapshot(collection(db, "users"), snap => document.getElementById('statUsers').innerText = snap.size);
+        const qDep = query(collection(db, "deposits"), where("status", "==", "pending"));
+        onSnapshot(qDep, snap => {
+            document.getElementById('statDeps').innerText = snap.size;
+            document.getElementById('depCount').innerText = snap.size;
+            document.getElementById('depCount').classList.toggle('hidden', snap.size === 0);
+        });
+        const qWith = query(collection(db, "deposits"), where("status", "==", "pending"), where("type", "==", "withdraw"));
+        onSnapshot(qWith, snap => document.getElementById('statWiths').innerText = snap.size);
+
+        // --- 2. FINANCE (DEPOSITS & WITHDRAWALS) ---
+        onSnapshot(collection(db, "deposits"), (snap) => {
+            const dList = document.getElementById('depositList');
+            const wList = document.getElementById('withdrawList');
+            dList.innerHTML = ""; wList.innerHTML = "";
+
+            snap.forEach(doc => {
+                const data = doc.data();
+                if (data.status === 'pending') {
+                    if (data.type === 'deposit') {
+                        dList.innerHTML += `
+                        <div class="bg-[#1e293b] p-4 rounded-xl border border-gray-700 flex justify-between items-center">
+                            <div>
+                                <p class="text-white font-bold text-lg">₹${data.amount}</p>
+                                <p class="text-xs text-gray-400">${data.userEmail}</p>
+                                <p class="text-xs text-yellow-500 font-mono mt-1">UTR: ${data.utr}</p>
+                            </div>
+                            <div class="flex gap-2">
+                                <button onclick="processTx('${doc.id}', '${data.userId}', ${data.amount}, 'approve')" class="bg-green-600 px-3 py-1 rounded text-xs font-bold text-white">ACCEPT</button>
+                                <button onclick="processTx('${doc.id}', null, 0, 'reject')" class="bg-red-600 px-3 py-1 rounded text-xs font-bold text-white">REJECT</button>
+                            </div>
+                        </div>`;
+                    } else {
+                        const bank = data.bankDetails || {};
+                        wList.innerHTML += `
+                        <div class="bg-[#1e293b] p-4 rounded-xl border border-red-900/30">
+                            <div class="flex justify-between mb-2">
+                                <span class="text-red-400 font-bold">Withdraw ₹${data.amount}</span>
+                                <span class="text-xs text-gray-500">${new Date(data.timestamp.seconds*1000).toLocaleTimeString()}</span>
+                            </div>
+                            <div class="bg-gray-900 p-2 rounded text-xs text-gray-300 mb-3">
+                                <p>Bank: ${bank.name}</p>
+                                <p>Acc: ${bank.acc} | IFSC: ${bank.ifsc}</p>
+                            </div>
+                            <div class="flex gap-2">
+                                <button onclick="processWithdraw('${doc.id}', '${data.userId}', ${data.amount})" class="flex-1 bg-green-600 py-2 rounded text-xs font-bold text-white">MARK PAID</button>
+                                <button onclick="processTx('${doc.id}', null, 0, 'reject')" class="flex-1 bg-red-600 py-2 rounded text-xs font-bold text-white">REJECT</button>
+                            </div>
+                        </div>`;
+                    }
+                }
+            });
+        });
+
+        window.processTx = async (id, uid, amount, action) => {
+            try {
+                if(action === 'approve') {
+                    await runTransaction(db, async (t) => {
+                        t.update(doc(db, "deposits", id), { status: 'approved' });
+                        t.update(doc(db, "users", uid), { balance: increment(amount) });
+                    });
+                } else {
+                    await updateDoc(doc(db, "deposits", id), { status: 'rejected' });
+                }
+            } catch(e) { alert(e); }
+        };
+
+        window.processWithdraw = async (id, uid, amount) => {
+            if(!confirm("Mark as Paid? Balance was already deducted on request.")) return;
+            await updateDoc(doc(db, "deposits", id), { status: 'approved' });
+        };
+
+        // --- 3. USERS ---
+        onSnapshot(collection(db, "users"), (snap) => {
+            const list = document.getElementById('userList');
+            list.innerHTML = "";
+            snap.forEach(d => {
+                const u = d.data();
+                list.innerHTML += `
+                <tr class="border-b border-gray-700 hover:bg-gray-800">
+                    <td class="p-4"><div class="font-bold text-white">${u.email}</div><div class="text-xs text-gray-500">${d.id}</div></td>
+                    <td class="p-4 font-mono text-yellow-400">₹${u.balance.toFixed(2)}</td>
+                    <td class="p-4">${u.banned ? '<span class="text-red-500 font-bold text-xs">BANNED</span>' : '<span class="text-green-500 text-xs">ACTIVE</span>'}</td>
+                    <td class="p-4 text-right"><button onclick="editUser('${d.id}', ${u.balance}, ${u.banned||false})" class="bg-gray-700 px-3 py-1 rounded text-xs text-white">Edit</button></td>
+                </tr>`;
+            });
+        });
+
+        window.editUser = (id, bal, ban) => {
+            document.getElementById('editUid').value = id;
+            document.getElementById('editBalance').value = bal;
+            document.getElementById('editBan').checked = ban;
+            document.getElementById('editUserModal').classList.remove('hidden');
+        };
+
+        window.saveUserChanges = async () => {
+            const id = document.getElementById('editUid').value;
+            const bal = parseFloat(document.getElementById('editBalance').value);
+            const ban = document.getElementById('editBan').checked;
+            await updateDoc(doc(db, "users", id), { balance: bal, banned: ban });
+            document.getElementById('editUserModal').classList.add('hidden');
+        };
+
+        // --- 4. GAME CONTROL ---
+        window.saveGameSetting = async (game) => {
+            if(game === 'aviator') {
+                const val = document.getElementById('aviatorCrash').value;
+                await setDoc(doc(db, "game_settings", "aviator"), { nextCrash: val ? parseFloat(val) : null }, { merge: true });
+                alert("Aviator Crash Point Set!");
+            } else {
+                const val = document.getElementById('parityResultColor').value;
+                await setDoc(doc(db, "game_settings", "parity"), { nextResult: val }, { merge: true });
+                alert("Win Go Result Set!");
+            }
+        };
+
+        // --- 5. ANNOUNCEMENTS ---
+        window.sendAnnouncement = async () => {
+            const title = document.getElementById('annTitle').value;
+            const msg = document.getElementById('annMsg').value;
+            if(!title || !msg) return alert("Fill all fields");
+            await setDoc(doc(collection(db, "announcements")), { title: title, message: msg, timestamp: new Date() });
+            alert("Sent!");
+            document.getElementById('annTitle').value = "";
+            document.getElementById('annMsg').value = "";
+        };
+
+        // --- 6. SETTINGS ---
+        document.getElementById('saveUpiBtn').addEventListener('click', async () => {
+            await setDoc(doc(db, "settings", "admin"), { upiId: document.getElementById('adminUpiInput').value }, { merge: true });
+            alert("UPI Updated");
+        });
+    </script>
+</body>
+</html>
