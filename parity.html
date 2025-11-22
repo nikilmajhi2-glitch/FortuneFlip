@@ -1,0 +1,431 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Win Go - FortuneFlip</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;600;800&display=swap" rel="stylesheet">
+    <style>
+        body { background-color: #0f172a; color: white; font-family: 'Outfit', sans-serif; padding-bottom: 20px; -webkit-tap-highlight-color: transparent; }
+        .glass { background: #1e293b; border-bottom: 1px solid #334155; }
+        
+        /* Balls */
+        .ball { width: 24px; height: 24px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 10px; font-weight: bold; box-shadow: 0 2px 5px rgba(0,0,0,0.3); color: white; }
+        .bg-red { background: #ef4444; }
+        .bg-green { background: #22c55e; }
+        .bg-violet { background: #8b5cf6; }
+        .bg-red-violet { background: linear-gradient(135deg, #ef4444 50%, #8b5cf6 50%); }
+        .bg-green-violet { background: linear-gradient(135deg, #22c55e 50%, #8b5cf6 50%); }
+
+        /* Tabs */
+        .tab-btn { padding: 10px; font-size: 13px; color: #94a3b8; border-bottom: 2px solid transparent; transition: all 0.3s; flex: 1; text-align: center; }
+        .tab-btn.active { color: #fbbf24; border-bottom: 2px solid #fbbf24; font-weight: bold; }
+
+        /* Animations */
+        .modal-up { animation: slideUp 0.3s cubic-bezier(0.16, 1, 0.3, 1); }
+        @keyframes slideUp { from { transform: translateY(100%); } to { transform: translateY(0); } }
+
+        /* Toast */
+        #toast { visibility: hidden; min-width: 250px; margin-left: -125px; background-color: #333; color: #fff; text-align: center; border-radius: 50px; padding: 14px 20px; position: fixed; z-index: 100; left: 50%; bottom: 50px; border: 1px solid #475569; }
+        #toast.show { visibility: visible; animation: fadeIn 0.5s, fadeOut 0.5s 2.5s; }
+        @keyframes fadeIn { from { bottom: 0; opacity: 0; } to { bottom: 50px; opacity: 1; } }
+        @keyframes fadeOut { from { bottom: 50px; opacity: 1; } to { bottom: 0; opacity: 0; } }
+    </style>
+</head>
+<body class="max-w-md mx-auto min-h-screen relative">
+
+    <div id="toast">Message</div>
+
+    <div class="p-4 bg-[#1e293b] flex justify-between items-center shadow-md">
+        <button onclick="window.location.href='index.html'"><i class="fas fa-chevron-left text-gray-400"></i></button>
+        <h1 class="font-bold text-lg">Win Go 3 Min</h1>
+        <div class="flex items-center gap-3">
+            <button onclick="toggleMute()" id="soundBtn" class="text-yellow-400"><i class="fas fa-volume-up"></i></button>
+            <button onclick="document.getElementById('rulesModal').classList.remove('hidden')"><i class="fas fa-circle-info text-gray-400"></i></button>
+        </div>
+    </div>
+
+    <div class="p-4 bg-[#0f172a]">
+        <div class="bg-[#1e293b] rounded-2xl p-4 flex justify-between items-center border border-gray-700 shadow-lg">
+            <div>
+                <p class="text-xs text-gray-400 flex items-center gap-1"><i class="fas fa-wallet text-yellow-500"></i> Balance</p>
+                <h2 class="text-2xl font-bold text-white mt-1">₹<span id="gameBalance">...</span></h2>
+            </div>
+            <button onclick="window.location.href='index.html'" class="bg-green-600 px-4 py-2 rounded-lg text-xs font-bold shadow-lg">Deposit</button>
+        </div>
+
+        <div class="flex justify-between items-center mt-6 mb-2">
+            <div>
+                <p class="text-xs text-gray-400 flex items-center gap-1"><i class="fas fa-trophy text-yellow-500"></i> Period</p>
+                <h2 class="text-xl font-bold tracking-wider mt-1" id="periodId">Loading...</h2>
+            </div>
+            <div class="text-right">
+                <p class="text-xs text-gray-400">Count Down</p>
+                <div class="flex gap-1 mt-1 text-2xl font-mono font-bold text-white" id="timer">
+                    <span class="bg-gray-800 p-1 rounded">00</span>:<span class="bg-gray-800 p-1 rounded">00</span>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="px-4 relative">
+        <div id="betMask" class="hidden absolute inset-0 bg-black/60 z-10 flex items-center justify-center rounded-xl backdrop-blur-[1px]">
+            <span class="text-3xl font-bold text-white animate-pulse">STOP</span>
+        </div>
+
+        <div class="grid grid-cols-3 gap-3 mb-4">
+            <button onclick="openBetModal('green')" class="bg-green-600 py-3 rounded-t-xl font-bold shadow-[0_4px_0_#15803d] active:translate-y-1 active:shadow-none transition">Green</button>
+            <button onclick="openBetModal('violet')" class="bg-purple-600 py-3 rounded-t-xl font-bold shadow-[0_4px_0_#6b21a8] active:translate-y-1 active:shadow-none transition">Violet</button>
+            <button onclick="openBetModal('red')" class="bg-red-600 py-3 rounded-t-xl font-bold shadow-[0_4px_0_#b91c1c] active:translate-y-1 active:shadow-none transition">Red</button>
+        </div>
+
+        <div class="bg-[#1e293b] p-3 rounded-xl grid grid-cols-5 gap-2 border border-gray-700">
+            <button onclick="openBetModal('0')" class="bg-gradient-to-br from-purple-500 to-red-500 py-2 rounded-lg font-bold shadow">0</button>
+            <button onclick="openBetModal('1')" class="bg-green-600 py-2 rounded-lg font-bold shadow">1</button>
+            <button onclick="openBetModal('2')" class="bg-red-600 py-2 rounded-lg font-bold shadow">2</button>
+            <button onclick="openBetModal('3')" class="bg-green-600 py-2 rounded-lg font-bold shadow">3</button>
+            <button onclick="openBetModal('4')" class="bg-red-600 py-2 rounded-lg font-bold shadow">4</button>
+            <button onclick="openBetModal('5')" class="bg-gradient-to-br from-purple-500 to-green-500 py-2 rounded-lg font-bold shadow">5</button>
+            <button onclick="openBetModal('6')" class="bg-red-600 py-2 rounded-lg font-bold shadow">6</button>
+            <button onclick="openBetModal('7')" class="bg-green-600 py-2 rounded-lg font-bold shadow">7</button>
+            <button onclick="openBetModal('8')" class="bg-red-600 py-2 rounded-lg font-bold shadow">8</button>
+            <button onclick="openBetModal('9')" class="bg-green-600 py-2 rounded-lg font-bold shadow">9</button>
+        </div>
+    </div>
+
+    <div class="mt-6 bg-[#1e293b] min-h-[400px] rounded-t-3xl">
+        <div class="flex border-b border-gray-700">
+            <button onclick="switchTab('game')" id="tab-game" class="tab-btn active">Parity Record</button>
+            <button onclick="switchTab('my')" id="tab-my" class="tab-btn">My Orders</button>
+            <button onclick="switchTab('all')" id="tab-all" class="tab-btn">All Bets</button> 
+        </div>
+
+        <div id="view-game" class="p-4">
+            <table class="w-full text-center text-sm text-gray-300">
+                <thead class="text-gray-500 text-xs uppercase">
+                    <tr><th class="pb-2">Period</th><th class="pb-2">Number</th><th class="pb-2">Result</th></tr>
+                </thead>
+                <tbody id="gameHistoryList" class="space-y-2">
+                    <tr><td colspan="3" class="py-4 text-gray-500">Loading history...</td></tr>
+                </tbody>
+            </table>
+        </div>
+
+        <div id="view-my" class="p-4 hidden">
+            <div id="myHistoryList" class="space-y-3">
+                <p class="text-center text-gray-500 text-sm mt-4">Loading bets...</p>
+            </div>
+        </div>
+
+        <div id="view-all" class="p-4 hidden">
+            <table class="w-full text-center text-sm text-gray-300">
+                <thead class="text-gray-500 text-xs uppercase">
+                    <tr><th class="pb-2">User</th><th class="pb-2">Select</th><th class="pb-2">Amount</th></tr>
+                </thead>
+                <tbody id="allBetsList" class="space-y-2">
+                    <tr><td colspan="3" class="py-4 text-gray-500">No active bets.</td></tr>
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <div id="rulesModal" class="fixed inset-0 bg-black/80 hidden z-50 flex items-center justify-center p-4 backdrop-blur-sm">
+        <div class="bg-[#1e293b] w-full max-w-sm rounded-2xl p-6 border border-gray-600 relative">
+            <button onclick="document.getElementById('rulesModal').classList.add('hidden')" class="absolute top-4 right-4 text-gray-400 hover:text-white"><i class="fas fa-times"></i></button>
+            <h3 class="text-xl font-bold mb-4 text-white">Game Rules</h3>
+            <div class="space-y-4 text-sm text-gray-300">
+                <div class="flex items-center gap-3"><div class="w-3 h-3 rounded-full bg-green-500 shrink-0"></div><p><span class="text-green-400 font-bold">GREEN</span> : 1, 3, 7, 9 (x2)</p></div>
+                <div class="flex items-center gap-3"><div class="w-3 h-3 rounded-full bg-red-500 shrink-0"></div><p><span class="text-red-400 font-bold">RED</span> : 2, 4, 6, 8 (x2)</p></div>
+                <div class="flex items-center gap-3"><div class="w-3 h-3 rounded-full bg-purple-500 shrink-0"></div><p><span class="text-purple-400 font-bold">VIOLET</span> : 0, 5 (x4.5)</p></div>
+            </div>
+            <button onclick="document.getElementById('rulesModal').classList.add('hidden')" class="w-full mt-6 bg-green-600 py-3 rounded-xl font-bold text-white">I Understand</button>
+        </div>
+    </div>
+
+    <div id="betModal" class="fixed inset-0 bg-black/80 hidden z-50 flex items-end justify-center backdrop-blur-sm">
+        <div class="bg-[#1e293b] w-full max-w-md rounded-t-3xl p-6 border-t border-gray-600 modal-up">
+            <h2 class="text-lg font-bold mb-2">Select <span id="selectedBet" class="uppercase text-yellow-400"></span></h2>
+            <div class="flex gap-2 mb-4">
+                <button onclick="setAmt(10, this)" class="amt-btn flex-1 bg-gray-800 py-2 rounded border border-gray-600 text-sm focus:bg-yellow-500 focus:text-black">10</button>
+                <button onclick="setAmt(100, this)" class="amt-btn flex-1 bg-gray-800 py-2 rounded border border-gray-600 text-sm focus:bg-yellow-500 focus:text-black">100</button>
+                <button onclick="setAmt(1000, this)" class="amt-btn flex-1 bg-gray-800 py-2 rounded border border-gray-600 text-sm focus:bg-yellow-500 focus:text-black">1000</button>
+            </div>
+            <div class="flex items-center justify-between bg-gray-900 p-3 rounded-xl mb-4">
+                <span class="text-sm text-gray-400">Quantity</span>
+                <div class="flex items-center gap-3">
+                    <button onclick="adjQty(-1)" class="w-8 h-8 bg-gray-700 rounded font-bold">-</button>
+                    <span id="betQty" class="font-bold w-8 text-center">1</span>
+                    <button onclick="adjQty(1)" class="w-8 h-8 bg-gray-700 rounded font-bold">+</button>
+                </div>
+            </div>
+            <div class="flex gap-3">
+                <button onclick="document.getElementById('betModal').classList.add('hidden')" class="flex-1 py-3 rounded-xl font-bold bg-gray-700">Cancel</button>
+                <button onclick="placeBet()" id="confirmBetBtn" class="flex-2 w-2/3 bg-gradient-to-r from-yellow-500 to-orange-600 text-black py-3 rounded-xl font-bold shadow-lg">
+                    Bet ₹<span id="totalBetAmt">10</span>
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/9.6.1/firebase-app.js";
+        import { getAuth, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/9.6.1/firebase-auth.js";
+        import { getFirestore, doc, onSnapshot, addDoc, collection, runTransaction, query, where, orderBy, limit, updateDoc, increment, getDocs } from "https://www.gstatic.com/firebasejs/9.6.1/firebase-firestore.js";
+
+        const firebaseConfig = {
+            apiKey: "AIzaSyAvuTedi4hNLDTHwNt3tElmZZmwmxBC_zo",
+            authDomain: "rupeedesk7.firebaseapp.com",
+            projectId: "rupeedesk7",
+            storageBucket: "rupeedesk7.firebasestorage.app",
+            messagingSenderId: "1013963357851",
+            appId: "1:1013963357851:android:89d07511ca0da5fded503e"
+        };
+
+        const app = initializeApp(firebaseConfig);
+        const auth = getAuth(app);
+        const db = getFirestore(app);
+        let currentUser = null;
+        let currentBalance = 0;
+        let betChoice = '';
+        let baseAmt = 10;
+        let currentPeriod = '';
+
+        // SOUNDS
+        let isMuted = false;
+        const sounds = {
+            click: new Audio('https://assets.mixkit.co/active_storage/sfx/2571/2571-preview.mp3'),
+            tick: new Audio('https://assets.mixkit.co/active_storage/sfx/2568/2568-preview.mp3'), // Clock tick
+            win: new Audio('https://assets.mixkit.co/active_storage/sfx/1435/1435-preview.mp3'), // Win chime
+            loss: new Audio('https://assets.mixkit.co/active_storage/sfx/2003/2003-preview.mp3') // Soft thud
+        };
+
+        onAuthStateChanged(auth, (user) => {
+            if(user) {
+                currentUser = user;
+                onSnapshot(doc(db, "users", user.uid), (d) => {
+                    currentBalance = d.data().balance;
+                    document.getElementById('gameBalance').innerText = currentBalance.toFixed(2);
+                });
+                loadHistory();
+                loadMyBets(user.uid);
+                loadAllBets();
+            } else window.location.href = "login.html";
+        });
+
+        // --- AUDIO MANAGER ---
+        window.toggleMute = () => {
+            isMuted = !isMuted;
+            const icon = document.querySelector('#soundBtn i');
+            icon.className = isMuted ? 'fas fa-volume-mute' : 'fas fa-volume-up';
+            icon.parentElement.className = isMuted ? 'text-gray-500' : 'text-yellow-400';
+        };
+        function playSfx(key) {
+            if(!isMuted) {
+                sounds[key].currentTime = 0;
+                sounds[key].play().catch(e=>{});
+            }
+        }
+
+        setInterval(() => {
+            const now = new Date();
+            const totalSeconds = (now.getMinutes() * 60) + now.getSeconds();
+            const cycle = 180;
+            const remain = cycle - (totalSeconds % cycle);
+            
+            const m = Math.floor(remain / 60).toString().padStart(2,'0');
+            const s = (remain % 60).toString().padStart(2,'0');
+            document.getElementById('timer').innerHTML = `<span class="bg-gray-800 p-1 rounded">${m}</span>:<span class="bg-gray-800 p-1 rounded">${s}</span>`;
+
+            const rawPeriod = now.toISOString().slice(0,10).replace(/-/g,"") + Math.floor(((now.getHours() * 60) + now.getMinutes()) / 3).toString().padStart(4,'0');
+            
+            if(currentPeriod !== rawPeriod && currentPeriod !== '') {
+                smartProcessResult(currentPeriod);
+            }
+            currentPeriod = rawPeriod;
+            document.getElementById('periodId').innerText = rawPeriod;
+
+            // Countdown Sound & Visuals
+            if(remain <= 5 && remain > 0) {
+                document.getElementById('betMask').classList.remove('hidden');
+                playSfx('tick');
+            } else if (remain > 5) {
+                document.getElementById('betMask').classList.add('hidden');
+            }
+
+        }, 1000);
+
+        async function smartProcessResult(period) {
+            const resCheck = await getDocs(query(collection(db, "game_results"), where("period", "==", period)));
+            if(!resCheck.empty) return; 
+
+            const betsSnap = await getDocs(query(collection(db, "bets"), where("period", "==", period)));
+            let poolGreen = 0, poolRed = 0, poolViolet = 0;
+
+            betsSnap.forEach(doc => {
+                const b = doc.data();
+                if(b.choice === 'green') poolGreen += b.amount;
+                else if(b.choice === 'red') poolRed += b.amount;
+                else if(b.choice === 'violet') poolViolet += b.amount;
+            });
+
+            let winningColor = 'green';
+            let numbers = [1,3,7,9];
+
+            if(poolRed < poolGreen && poolRed < poolViolet) { winningColor = 'red'; numbers = [2,4,6,8]; } 
+            else if(poolViolet < poolGreen && poolViolet < poolRed) { winningColor = 'violet'; numbers = [0,5]; }
+
+            const resultNum = numbers[Math.floor(Math.random() * numbers.length)];
+            await addDoc(collection(db, "game_results"), { period: period, number: resultNum, color: winningColor, timestamp: new Date() });
+            
+            betsSnap.forEach(async (docSnap) => {
+                const bet = docSnap.data();
+                let win = false; let profit = 0;
+                
+                if(bet.choice === 'green' && winningColor === 'green') { win=true; profit = bet.amount * 1.96; }
+                else if(bet.choice === 'red' && winningColor === 'red') { win=true; profit = bet.amount * 1.96; }
+                else if(bet.choice === 'violet' && winningColor === 'violet') { win=true; profit = bet.amount * 4.5; }
+                else if(bet.choice === resultNum.toString()) { win=true; profit = bet.amount * 9; }
+
+                await updateDoc(doc(db, "bets", docSnap.id), { status: win ? 'win' : 'loss', result: resultNum });
+                if(win) await updateDoc(doc(db, "users", bet.userId), { balance: increment(profit) });
+                
+                // Trigger Sound if current user involved
+                if(bet.userId === currentUser.uid) {
+                    setTimeout(() => playSfx(win ? 'win' : 'loss'), 1000);
+                }
+            });
+        }
+
+        function loadAllBets() {
+            const q = query(collection(db, "bets"), orderBy("timestamp", "desc"), limit(20));
+            onSnapshot(q, (snap) => {
+                const list = document.getElementById('allBetsList');
+                list.innerHTML = "";
+                snap.forEach(d => {
+                    const data = d.data();
+                    const maskedUser = data.userId.substring(0,4) + "***";
+                    let colorClass = 'text-gray-400';
+                    if(data.choice==='green') colorClass='text-green-500';
+                    if(data.choice==='red') colorClass='text-red-500';
+                    if(data.choice==='violet') colorClass='text-purple-500';
+
+                    list.innerHTML += `
+                    <tr class="border-b border-gray-800 h-10 text-xs">
+                        <td class="text-gray-400">${maskedUser}</td>
+                        <td class="font-bold uppercase ${colorClass}">${data.choice}</td>
+                        <td class="font-mono text-white">₹${data.amount}</td>
+                    </tr>`;
+                });
+            });
+        }
+
+        window.switchTab = (tab) => {
+            playSfx('click');
+            ['game', 'my', 'all'].forEach(t => {
+                document.getElementById('view-'+t).classList.add('hidden');
+                document.getElementById('tab-'+t).classList.remove('active');
+            });
+            document.getElementById('view-' + tab).classList.remove('hidden');
+            document.getElementById('tab-' + tab).classList.add('active');
+        };
+
+        window.openBetModal = (choice) => {
+            playSfx('click');
+            betChoice = choice;
+            document.getElementById('selectedBet').innerText = choice;
+            const title = document.getElementById('selectedBet');
+            title.className = `uppercase font-bold ${choice === 'green' ? 'text-green-500' : (choice === 'red' ? 'text-red-500' : 'text-purple-500')}`;
+            document.getElementById('betModal').classList.remove('hidden');
+        };
+
+        window.setAmt = (a, btn) => { 
+            playSfx('click');
+            baseAmt = a; 
+            document.querySelectorAll('.amt-btn').forEach(b => b.classList.remove('bg-yellow-500', 'text-black'));
+            btn.classList.add('bg-yellow-500', 'text-black');
+            updateCalc(); 
+        };
+        
+        window.adjQty = (n) => {
+            playSfx('click');
+            let val = parseInt(document.getElementById('betQty').innerText) + n;
+            if(val < 1) val = 1;
+            document.getElementById('betQty').innerText = val;
+            updateCalc();
+        };
+
+        function updateCalc() {
+            document.getElementById('totalBetAmt').innerText = baseAmt * parseInt(document.getElementById('betQty').innerText);
+        }
+
+        window.placeBet = async () => {
+            playSfx('click');
+            const total = parseInt(document.getElementById('totalBetAmt').innerText);
+            const btn = document.getElementById('confirmBetBtn');
+            const originalText = btn.innerHTML;
+
+            if(total > currentBalance) return showToast("Insufficient Balance");
+
+            btn.disabled = true;
+            btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Processing...';
+
+            try {
+                await runTransaction(db, async (t) => {
+                    const uRef = doc(db, "users", currentUser.uid);
+                    const uDoc = await t.get(uRef);
+                    if(uDoc.data().balance < total) throw "Low Balance";
+                    
+                    t.update(uRef, { balance: uDoc.data().balance - total });
+                    t.set(doc(collection(db, "bets")), {
+                        userId: currentUser.uid, period: document.getElementById('periodId').innerText,
+                        choice: betChoice, amount: total, status: 'pending', timestamp: new Date()
+                    });
+                });
+                showToast("Bet Placed Successfully!");
+                document.getElementById('betModal').classList.add('hidden');
+            } catch(e) { showToast("Error: " + e); }
+            finally { btn.disabled = false; btn.innerHTML = originalText; }
+        };
+
+        function loadHistory() {
+            const q = query(collection(db, "game_results"), orderBy("timestamp", "desc"), limit(10));
+            onSnapshot(q, (snap) => {
+                const list = document.getElementById('gameHistoryList');
+                list.innerHTML = "";
+                snap.forEach(d => {
+                    const data = d.data();
+                    let ballClass = data.color === 'green' ? 'bg-green' : (data.color === 'red' ? 'bg-red' : 'bg-violet');
+                    if(data.number === 0) ballClass = 'bg-red-violet';
+                    if(data.number === 5) ballClass = 'bg-green-violet';
+                    list.innerHTML += `<tr class="border-b border-gray-800 h-12"><td>${data.period.slice(-4)}</td><td class="font-bold text-xl ${data.color === 'green' ? 'text-green-500' : 'text-red-500'}">${data.number}</td><td><div class="ball ${ballClass} mx-auto"></div></td></tr>`;
+                });
+            });
+        }
+
+        function loadMyBets(uid) {
+            const q = query(collection(db, "bets"), where("userId", "==", uid));
+            onSnapshot(q, (snap) => {
+                const list = document.getElementById('myHistoryList');
+                list.innerHTML = "";
+                const docs = [];
+                snap.forEach(d => docs.push(d.data()));
+                docs.sort((a, b) => b.timestamp.seconds - a.timestamp.seconds);
+                if(docs.length === 0) list.innerHTML = '<p class="text-center text-gray-500 text-sm mt-4">No bets yet.</p>';
+                docs.forEach(data => {
+                    const statusText = data.status === 'pending' ? 'WAIT' : (data.status === 'win' ? `WIN (+₹${(data.amount * 1.96).toFixed(0)})` : `LOSS (-₹${data.amount})`);
+                    const statusColor = data.status === 'pending' ? 'text-yellow-500' : (data.status === 'win' ? 'text-green-500' : 'text-red-500');
+                    list.innerHTML += `
+                    <div class="bg-gray-800 p-3 rounded-xl flex justify-between items-center">
+                        <div><p class="text-xs text-gray-400">Period: ${data.period.slice(-4)}</p><p class="font-bold uppercase text-sm text-white">Select: ${data.choice}</p></div>
+                        <div class="text-right"><p class="font-bold text-white">₹${data.amount}</p><p class="text-xs ${statusColor} font-bold uppercase">${statusText}</p></div>
+                    </div>`;
+                });
+            });
+        }
+
+        window.showToast = (msg) => { const x = document.getElementById("toast"); x.innerText = msg; x.className = "show"; setTimeout(() => { x.className = x.className.replace("show", ""); }, 3000); };
+    </script>
+</body>
+</html>

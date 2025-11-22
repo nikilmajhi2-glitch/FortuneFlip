@@ -1,0 +1,168 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>FortuneFlip - Login</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+    <style>
+        body { background-color: #0f172a; color: white; font-family: sans-serif; }
+        .glass { background: rgba(30, 41, 59, 0.7); backdrop-filter: blur(10px); border: 1px solid rgba(255, 255, 255, 0.1); }
+        .gold-btn { background: linear-gradient(90deg, #fbbf24, #d97706); color: black; font-weight: bold; }
+        .input-field { background: #1e293b; border: 1px solid #334155; color: white; }
+        
+        /* Toast */
+        #toast { visibility: hidden; min-width: 250px; margin-left: -125px; background-color: #333; color: #fff; text-align: center; border-radius: 50px; padding: 14px; position: fixed; z-index: 100; left: 50%; bottom: 50px; }
+        #toast.show { visibility: visible; animation: fadeIn 0.5s, fadeOut 0.5s 2.5s; }
+        @keyframes fadeIn { from { bottom: 0; opacity: 0; } to { bottom: 50px; opacity: 1; } }
+        @keyframes fadeOut { from { bottom: 50px; opacity: 1; } to { bottom: 0; opacity: 0; } }
+    </style>
+</head>
+<body class="min-h-screen flex flex-col items-center justify-center p-6 relative overflow-hidden">
+
+    <div class="absolute top-0 left-0 w-full h-full overflow-hidden -z-10">
+        <div class="absolute top-10 left-10 w-32 h-32 bg-purple-600 rounded-full blur-[80px] opacity-40"></div>
+        <div class="absolute bottom-10 right-10 w-32 h-32 bg-yellow-500 rounded-full blur-[80px] opacity-30"></div>
+    </div>
+
+    <div id="toast">Notification</div>
+
+    <div class="w-full max-w-sm glass p-8 rounded-3xl shadow-2xl">
+        <div class="text-center mb-8">
+            <div class="inline-block p-3 rounded-full bg-yellow-500/20 mb-2">
+                <i class="fas fa-dice text-3xl text-yellow-400"></i>
+            </div>
+            <h1 class="text-2xl font-bold tracking-wider">FortuneFlip</h1>
+            <p class="text-gray-400 text-sm">Play & Win Big</p>
+        </div>
+
+        <div class="flex bg-gray-800 rounded-xl p-1 mb-6">
+            <button onclick="switchTab('login')" id="btn-login" class="flex-1 py-2 rounded-lg text-sm font-bold bg-gray-700 text-white transition">Login</button>
+            <button onclick="switchTab('register')" id="btn-register" class="flex-1 py-2 rounded-lg text-sm font-bold text-gray-400 transition">Register</button>
+        </div>
+
+        <form id="loginForm" class="space-y-4">
+            <div>
+                <label class="text-xs text-gray-400 ml-2">Email</label>
+                <input type="email" id="loginEmail" class="input-field w-full p-3 rounded-xl outline-none focus:border-yellow-500 transition">
+            </div>
+            <div>
+                <label class="text-xs text-gray-400 ml-2">Password</label>
+                <input type="password" id="loginPass" class="input-field w-full p-3 rounded-xl outline-none focus:border-yellow-500 transition">
+            </div>
+            <button type="submit" id="loginBtn" class="gold-btn w-full py-3 rounded-xl mt-2 shadow-lg shadow-yellow-500/20">LOGIN</button>
+        </form>
+
+        <form id="registerForm" class="space-y-4 hidden">
+            <div>
+                <label class="text-xs text-gray-400 ml-2">Email</label>
+                <input type="email" id="regEmail" class="input-field w-full p-3 rounded-xl outline-none focus:border-yellow-500 transition">
+            </div>
+            <div>
+                <label class="text-xs text-gray-400 ml-2">Password</label>
+                <input type="password" id="regPass" class="input-field w-full p-3 rounded-xl outline-none focus:border-yellow-500 transition">
+            </div>
+            <div>
+                <label class="text-xs text-gray-400 ml-2">Referral Code (Optional)</label>
+                <input type="text" id="referralCode" class="input-field w-full p-3 rounded-xl outline-none focus:border-yellow-500 transition">
+            </div>
+            <div class="bg-yellow-500/10 p-3 rounded-lg border border-yellow-500/30 text-center">
+                <p class="text-yellow-400 text-xs font-bold">✨ Signup Bonus: ₹60 FREE ✨</p>
+            </div>
+            <button type="submit" id="regBtn" class="gold-btn w-full py-3 rounded-xl mt-2 shadow-lg shadow-yellow-500/20">CREATE ACCOUNT</button>
+        </form>
+    </div>
+
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/9.6.1/firebase-app.js";
+        import { getAuth, createUserWithEmailAndPassword, signInWithEmailAndPassword } from "https://www.gstatic.com/firebasejs/9.6.1/firebase-auth.js";
+        import { getFirestore, doc, setDoc } from "https://www.gstatic.com/firebasejs/9.6.1/firebase-firestore.js";
+
+        // YOUR FIREBASE CONFIG (Use the same one from Farm Wealth)
+        const firebaseConfig = {
+            apiKey: "AIzaSyAvuTedi4hNLDTHwNt3tElmZZmwmxBC_zo",
+            authDomain: "rupeedesk7.firebaseapp.com",
+            projectId: "rupeedesk7",
+            storageBucket: "rupeedesk7.firebasestorage.app",
+            messagingSenderId: "1013963357851",
+            appId: "1:1013963357851:android:89d07511ca0da5fded503e"
+        };
+
+        const app = initializeApp(firebaseConfig);
+        const auth = getAuth(app);
+        const db = getFirestore(app);
+
+        function showToast(msg) {
+            const t = document.getElementById('toast');
+            t.innerText = msg;
+            t.className = "show";
+            setTimeout(() => t.className = t.className.replace("show", ""), 3000);
+        }
+
+        // Register
+        document.getElementById('registerForm').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const btn = document.getElementById('regBtn');
+            btn.innerText = "Creating...";
+            
+            const email = document.getElementById('regEmail').value;
+            const pass = document.getElementById('regPass').value;
+            const ref = document.getElementById('referralCode').value;
+
+            try {
+                const cred = await createUserWithEmailAndPassword(auth, email, pass);
+                
+                // --- HERE IS THE BONUS LOGIC ---
+                await setDoc(doc(db, "users", cred.user.uid), {
+                    email: email,
+                    balance: 60, // Starts with 60
+                    referralCode: cred.user.uid.substring(0,6).toUpperCase(),
+                    referredBy: ref || null,
+                    createdAt: new Date()
+                });
+
+                showToast("Success! ₹60 Bonus Added.");
+                setTimeout(() => window.location.reload(), 1500);
+            } catch (err) {
+                showToast(err.message);
+                btn.innerText = "CREATE ACCOUNT";
+            }
+        });
+
+        // Login
+        document.getElementById('loginForm').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const btn = document.getElementById('loginBtn');
+            btn.innerText = "Logging in...";
+            
+            try {
+                await signInWithEmailAndPassword(auth, document.getElementById('loginEmail').value, document.getElementById('loginPass').value);
+                window.location.href = "index.html";
+            } catch (err) {
+                showToast(err.message);
+                btn.innerText = "LOGIN";
+            }
+        });
+
+        window.switchTab = (tab) => {
+            const loginForm = document.getElementById('loginForm');
+            const regForm = document.getElementById('registerForm');
+            const btnLogin = document.getElementById('btn-login');
+            const btnReg = document.getElementById('btn-register');
+
+            if(tab === 'login') {
+                loginForm.classList.remove('hidden');
+                regForm.classList.add('hidden');
+                btnLogin.className = "flex-1 py-2 rounded-lg text-sm font-bold bg-gray-700 text-white transition";
+                btnReg.className = "flex-1 py-2 rounded-lg text-sm font-bold text-gray-400 transition";
+            } else {
+                loginForm.classList.add('hidden');
+                regForm.classList.remove('hidden');
+                btnReg.className = "flex-1 py-2 rounded-lg text-sm font-bold bg-gray-700 text-white transition";
+                btnLogin.className = "flex-1 py-2 rounded-lg text-sm font-bold text-gray-400 transition";
+            }
+        }
+    </script>
+</body>
+</html>

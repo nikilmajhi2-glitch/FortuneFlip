@@ -1,0 +1,277 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Ludo Bet - FortuneFlip</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;600;800&display=swap" rel="stylesheet">
+    <style>
+        body { background-color: #0f172a; color: white; font-family: 'Outfit', sans-serif; -webkit-tap-highlight-color: transparent; }
+        .glass-panel { background: #1e293b; border: 1px solid #334155; transition: all 0.2s; }
+        
+        /* Dice Animation Container */
+        .dice-stage {
+            height: 200px;
+            display: flex; justify-content: center; align-items: center;
+            background: radial-gradient(circle, #1e293b 0%, #0f172a 100%);
+            border-bottom: 4px solid #fbbf24;
+            perspective: 1000px;
+        }
+        
+        .dice {
+            font-size: 80px; color: #fbbf24;
+            text-shadow: 0 0 20px rgba(251, 191, 36, 0.5);
+            transform-style: preserve-3d;
+        }
+        
+        .dice.rolling { animation: rollDice 0.5s infinite linear; color: #94a3b8; text-shadow: none; }
+        @keyframes rollDice { 
+            0% { transform: rotateX(0deg) rotateY(0deg); } 
+            100% { transform: rotateX(360deg) rotateY(360deg); } 
+        }
+
+        /* Selection States */
+        .bet-opt.active { background: #fbbf24; color: black; border-color: #fbbf24; font-weight: 800; transform: scale(1.05); }
+        
+        /* History Box */
+        .history-box { width: 30px; height: 30px; display: flex; align-items: center; justify-content: center; background: #334155; border-radius: 6px; font-size: 14px; color: #cbd5e1; flex-shrink: 0; }
+        .history-box.win { border: 1px solid #22c55e; color: #22c55e; }
+
+        /* Toast */
+        #toast { visibility: hidden; min-width: 250px; margin-left: -125px; background-color: #333; color: #fff; text-align: center; border-radius: 50px; padding: 14px 20px; position: fixed; z-index: 100; left: 50%; bottom: 80px; }
+        #toast.show { visibility: visible; animation: fadeIn 0.5s, fadeOut 0.5s 2.5s; }
+        @keyframes fadeIn { from { bottom: 0; opacity: 0; } to { bottom: 80px; opacity: 1; } }
+        @keyframes fadeOut { from { bottom: 80px; opacity: 1; } to { bottom: 0; opacity: 0; } }
+    </style>
+</head>
+<body class="max-w-md mx-auto min-h-screen flex flex-col relative pb-10">
+
+    <div id="toast">Message</div>
+
+    <div class="p-4 bg-[#0f172a] flex justify-between items-center border-b border-gray-800 sticky top-0 z-20">
+        <button onclick="window.location.href='index.html'"><i class="fas fa-chevron-left text-gray-400"></i></button>
+        <h1 class="font-bold text-lg tracking-wide">Ludo Bet</h1>
+        <div class="flex items-center gap-3">
+            <button onclick="toggleMute()" id="soundBtn" class="text-yellow-400"><i class="fas fa-volume-up"></i></button>
+            <div class="bg-gray-800 px-4 py-1.5 rounded-full text-sm font-bold border border-yellow-500/30 text-yellow-400">
+                ₹ <span id="gameBalance">...</span>
+            </div>
+        </div>
+    </div>
+
+    <div class="dice-stage">
+        <div id="diceIcon" class="dice"><i class="fas fa-dice-one"></i></div>
+        <p id="resultText" class="absolute bottom-4 text-gray-400 text-sm font-mono">PLACE YOUR BET</p>
+    </div>
+
+    <div class="bg-[#1e293b] p-3 flex gap-2 overflow-x-auto no-scrollbar border-b border-gray-800 items-center">
+        <span class="text-[10px] text-gray-500 mr-1 font-bold">LAST:</span>
+        <div id="historyBar" class="flex gap-2">
+            </div>
+    </div>
+
+    <div class="p-4 flex-1 bg-[#0f172a]">
+        
+        <div class="space-y-6">
+            
+            <div>
+                <p class="text-xs text-gray-500 font-bold mb-2 uppercase flex justify-between">
+                    <span>Exact Number</span> <span class="text-yellow-500">Payout 5x</span>
+                </p>
+                <div class="grid grid-cols-6 gap-2">
+                    <button onclick="selectBet('num', 1, this)" class="bet-opt glass-panel py-3 rounded-xl text-gray-300 font-bold"><i class="fas fa-dice-one"></i></button>
+                    <button onclick="selectBet('num', 2, this)" class="bet-opt glass-panel py-3 rounded-xl text-gray-300 font-bold"><i class="fas fa-dice-two"></i></button>
+                    <button onclick="selectBet('num', 3, this)" class="bet-opt glass-panel py-3 rounded-xl text-gray-300 font-bold"><i class="fas fa-dice-three"></i></button>
+                    <button onclick="selectBet('num', 4, this)" class="bet-opt glass-panel py-3 rounded-xl text-gray-300 font-bold"><i class="fas fa-dice-four"></i></button>
+                    <button onclick="selectBet('num', 5, this)" class="bet-opt glass-panel py-3 rounded-xl text-gray-300 font-bold"><i class="fas fa-dice-five"></i></button>
+                    <button onclick="selectBet('num', 6, this)" class="bet-opt glass-panel py-3 rounded-xl text-gray-300 font-bold"><i class="fas fa-dice-six"></i></button>
+                </div>
+            </div>
+
+            <div>
+                <p class="text-xs text-gray-500 font-bold mb-2 uppercase flex justify-between">
+                    <span>Size</span> <span class="text-yellow-500">Payout 2x</span>
+                </p>
+                <div class="grid grid-cols-2 gap-3">
+                    <button onclick="selectBet('size', 'small', this)" class="bet-opt glass-panel py-3 rounded-xl text-blue-400 border-blue-500/20">SMALL (1-3)</button>
+                    <button onclick="selectBet('size', 'big', this)" class="bet-opt glass-panel py-3 rounded-xl text-orange-400 border-orange-500/20">BIG (4-6)</button>
+                </div>
+            </div>
+
+            <div>
+                <p class="text-xs text-gray-500 font-bold mb-2 uppercase flex justify-between">
+                    <span>Parity</span> <span class="text-yellow-500">Payout 2x</span>
+                </p>
+                <div class="grid grid-cols-2 gap-3">
+                    <button onclick="selectBet('parity', 'odd', this)" class="bet-opt glass-panel py-3 rounded-xl text-purple-400 border-purple-500/20">ODD (1,3,5)</button>
+                    <button onclick="selectBet('parity', 'even', this)" class="bet-opt glass-panel py-3 rounded-xl text-green-400 border-green-500/20">EVEN (2,4,6)</button>
+                </div>
+            </div>
+
+        </div>
+
+        <div class="mt-8 bg-[#1e293b] p-3 rounded-2xl flex justify-between items-center border border-gray-700">
+            <div class="flex gap-2">
+                <button onclick="setAmt(10)" class="bg-gray-800 px-3 py-1 rounded text-xs text-gray-400 hover:text-white border border-gray-600">10</button>
+                <button onclick="setAmt(50)" class="bg-gray-800 px-3 py-1 rounded text-xs text-gray-400 hover:text-white border border-gray-600">50</button>
+                <button onclick="setAmt(100)" class="bg-gray-800 px-3 py-1 rounded text-xs text-gray-400 hover:text-white border border-gray-600">100</button>
+            </div>
+            <div class="flex items-center gap-2">
+                <span class="text-xs text-gray-500">Bet ₹</span>
+                <input type="number" id="betAmount" value="10" class="bg-transparent w-12 font-bold text-white text-right outline-none">
+            </div>
+        </div>
+
+        <button onclick="rollDice()" id="rollBtn" class="w-full mt-4 bg-gradient-to-r from-yellow-500 to-orange-600 text-black font-black py-4 rounded-2xl shadow-lg text-xl tracking-widest active:scale-95 transition">
+            ROLL DICE
+        </button>
+        
+        <div class="h-12"></div>
+    </div>
+
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/9.6.1/firebase-app.js";
+        import { getAuth, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/9.6.1/firebase-auth.js";
+        import { getFirestore, doc, onSnapshot, updateDoc, increment } from "https://www.gstatic.com/firebasejs/9.6.1/firebase-firestore.js";
+
+        const firebaseConfig = {
+            apiKey: "AIzaSyAvuTedi4hNLDTHwNt3tElmZZmwmxBC_zo",
+            authDomain: "rupeedesk7.firebaseapp.com",
+            projectId: "rupeedesk7",
+            storageBucket: "rupeedesk7.firebasestorage.app",
+            messagingSenderId: "1013963357851",
+            appId: "1:1013963357851:android:89d07511ca0da5fded503e"
+        };
+
+        const app = initializeApp(firebaseConfig);
+        const auth = getAuth(app);
+        const db = getFirestore(app);
+        let currentUser = null;
+        let currentBalance = 0;
+        
+        // Bet State
+        let betType = null; 
+        let betValue = null;
+
+        // AUDIO
+        let isMuted = false;
+        const sounds = {
+            roll: new Audio('https://assets.mixkit.co/active_storage/sfx/2003/2003-preview.mp3'), // Using card flip as shake for now
+            win: new Audio('https://assets.mixkit.co/active_storage/sfx/1435/1435-preview.mp3'),
+            click: new Audio('https://assets.mixkit.co/active_storage/sfx/2571/2571-preview.mp3')
+        };
+
+        onAuthStateChanged(auth, (user) => {
+            if(user) {
+                currentUser = user;
+                onSnapshot(doc(db, "users", user.uid), (d) => {
+                    currentBalance = d.data().balance;
+                    document.getElementById('gameBalance').innerText = currentBalance.toFixed(2);
+                });
+            } else window.location.href = "login.html";
+        });
+
+        // --- AUDIO ---
+        window.toggleMute = () => {
+            isMuted = !isMuted;
+            const icon = document.querySelector('#soundBtn i');
+            icon.className = isMuted ? 'fas fa-volume-mute' : 'fas fa-volume-up';
+            icon.parentElement.className = isMuted ? 'text-gray-500' : 'text-yellow-400';
+        };
+        function playSfx(key) {
+            if(!isMuted) {
+                sounds[key].currentTime = 0;
+                sounds[key].play().catch(e=>{});
+            }
+        }
+
+        window.selectBet = (type, value, btn) => {
+            playSfx('click');
+            betType = type;
+            betValue = value;
+            document.querySelectorAll('.bet-opt').forEach(b => b.classList.remove('active'));
+            btn.classList.add('active');
+        };
+
+        window.setAmt = (n) => {
+            playSfx('click');
+            document.getElementById('betAmount').value = n;
+        };
+
+        window.rollDice = async () => {
+            const amt = parseInt(document.getElementById('betAmount').value);
+            if(!betType) return showToast("Please select a bet!");
+            if(amt > currentBalance) return showToast("Insufficient Funds");
+
+            // Deduct
+            await updateDoc(doc(db, "users", currentUser.uid), { balance: increment(-amt) });
+
+            // Animation Start
+            const diceEl = document.getElementById('diceIcon');
+            const btn = document.getElementById('rollBtn');
+            const txt = document.getElementById('resultText');
+            
+            btn.disabled = true;
+            btn.innerText = "ROLLING...";
+            btn.className = "w-full mt-4 bg-gray-700 text-gray-400 font-bold py-4 rounded-2xl cursor-not-allowed";
+            
+            diceEl.className = "dice rolling";
+            txt.innerText = "Rolling...";
+            playSfx('roll');
+
+            // Result Logic (1.5s delay)
+            setTimeout(async () => {
+                const result = Math.floor(Math.random() * 6) + 1; 
+                
+                // Stop Animation
+                diceEl.className = "dice";
+                const icons = ["zero", "one", "two", "three", "four", "five", "six"];
+                diceEl.innerHTML = `<i class="fas fa-dice-${icons[result]}"></i>`;
+
+                // Calculate Win
+                let won = false;
+                let multiplier = 0;
+
+                if (betType === 'num' && betValue === result) { won = true; multiplier = 5; } 
+                else if (betType === 'size') {
+                    if (betValue === 'small' && result <= 3) { won = true; multiplier = 2; }
+                    if (betValue === 'big' && result >= 4) { won = true; multiplier = 2; }
+                } else if (betType === 'parity') {
+                    if (betValue === 'odd' && result % 2 !== 0) { won = true; multiplier = 2; }
+                    if (betValue === 'even' && result % 2 === 0) { won = true; multiplier = 2; }
+                }
+
+                // Add to History
+                const bar = document.getElementById('historyBar');
+                const box = document.createElement('div');
+                box.className = `history-box ${won ? 'win' : ''}`;
+                box.innerHTML = `<i class="fas fa-dice-${icons[result]}"></i>`;
+                bar.prepend(box);
+                if(bar.children.length > 10) bar.lastChild.remove();
+
+                if (won) {
+                    playSfx('win');
+                    const winAmt = amt * multiplier;
+                    txt.innerText = `WINNER! Result: ${result} (+₹${winAmt})`;
+                    txt.className = "absolute bottom-4 text-green-400 font-bold text-lg animate-bounce";
+                    await updateDoc(doc(db, "users", currentUser.uid), { balance: increment(winAmt) });
+                    showToast(`You Won ₹${winAmt}!`);
+                } else {
+                    txt.innerText = `Result: ${result}. Try Again!`;
+                    txt.className = "absolute bottom-4 text-red-400 font-bold text-sm";
+                }
+
+                // Reset Button
+                btn.disabled = false;
+                btn.innerText = "ROLL DICE";
+                btn.className = "w-full mt-4 bg-gradient-to-r from-yellow-500 to-orange-600 text-black font-black py-4 rounded-2xl shadow-lg text-xl tracking-widest active:scale-95 transition";
+
+            }, 1500);
+        };
+
+        window.showToast = (msg) => { const x = document.getElementById("toast"); x.innerText = msg; x.className = "show"; setTimeout(() => { x.className = x.className.replace("show", ""); }, 3000); };
+    </script>
+</body>
+</html>
